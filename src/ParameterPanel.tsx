@@ -124,12 +124,13 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
     const fetchNodes = () => {
         setStatus("Fetching nodes...");
         context.callService?.("/rosapi/nodes", {})
-            .then((_values: unknown) => {
-                setNodes((_values as any).nodes as string[]);
-                setStatus("Nodes fetched.");
+            .then((_value: unknown) => {
+                setNodes((_value as any).nodes as string[]);
+                setStatus("Fetching nodes done");
             })
             .catch((_error: Error) => {
-                setStatus(_error.toString());
+                setNodes([]);
+                setStatus("Fetching nodes failed: " + _error.message);
             });
     };
 
@@ -138,6 +139,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
      * Retrieves a list of all parameters for the current node and their values
      */
     const fetchNodeParameters = () => {
+        setStatus("Fetching node parameters for node " + node + "...");
         context.callService?.(node + "/list_parameters", {})
             .then((_value: unknown) => {
                 parameterNames = (_value as any).result.names as string[];
@@ -148,21 +150,22 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
 
                         let tempParameters: Array<Parameter> = [];
                         for (let i = 0; i < parameterNames.length; i++) {
-                            tempParameters.push({name: parameterNames[i]!, value: parameterValues[i]!});
+                            let parameter = {
+                                name: parameterNames[i]!,
+                                value: parameterValues[i]!
+                            };
+                            tempParameters.push(parameter);
                         }
-                        if (tempParameters.length > 0)
-                            setParameters(tempParameters);
-
-                        if (parameterNames !== undefined) {
-                            setSrvParameters(new Array(parameters?.length));
-                        }
+                        setParameters(tempParameters);
+                        setSrvParameters(new Array(tempParameters.length));
+                        setStatus("Fetching node parameters done");
                     })
-                    .catch(() => {
-                        setStatus("error, failed to retreive parameter values")
+                    .catch((_error) => {
+                        setStatus("Fetching node parameters values failed: " + _error.message);
                     });
             })
-            .catch(() => {
-                setStatus("error, failed to retreive parameter list")
+            .catch((_error) => {
+                setStatus("Fetching node parameters failed: " + _error.message);
             });
     };
 
@@ -172,8 +175,6 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
      * Calls fetchNodeParameters() to 'refresh' the screen and display the new parameter values
      */
     const sendNodeParameters = () => {
-        setStatus("Sending parameters...");
-
         let tempSrvParameters: SetSrvParameter[] = srvParameters!;
         for (let i: number = 0; i < tempSrvParameters.length; i++) {
             if (tempSrvParameters[i] == null) {
@@ -183,14 +184,16 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
         }
         setSrvParameters(tempSrvParameters);
 
+        setStatus("Sending node parameters for node " + node + "...");
         context.callService?.(node + "/set_parameters", {parameters: srvParameters})
             .then(() => {
-                fetchNodeParameters();
-                setStatus("Parameters sent.");
+                setStatus("Sending node parameters done");
             })
-            .catch((error: Error) => {
+            .catch((_error) => {
+                setStatus("Sending node parameters failed: " + _error.message);
+            })
+            .finally(() => {
                 fetchNodeParameters();
-                setStatus("Error: " + JSON.stringify(error));
             });
     };
 
