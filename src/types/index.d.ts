@@ -18,7 +18,7 @@ declare module "parameter_types" {
         string_array_value: string[];
     }
 
-    export type SetSrvParam = { 
+    export type SetSrvParam = {
         name?: string;
         value?: {
             type: number;
