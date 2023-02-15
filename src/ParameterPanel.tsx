@@ -3,14 +3,18 @@ import {useEffect, useLayoutEffect, useState} from "react";
 import ReactDOM from "react-dom";
 import type {Parameter, ParameterValue, SetSrvParam} from "parameter_types";
 
-// v0.0.1 //
 
 let node: string;
 let paramNameList: string[];
 let paramValList: ParameterValue[];
 
 
-function ExamplePanel({context}: { context: PanelExtensionContext }): JSX.Element {
+export function initParameterPanel(context: PanelExtensionContext) {
+    ReactDOM.render(<ParameterPanel context={context}/>, context.panelElement);
+}
+
+
+function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Element {
 
 
     const [renderDone, setRenderDone] = useState<(() => void) | undefined>();
@@ -586,8 +590,4 @@ function ExamplePanel({context}: { context: PanelExtensionContext }): JSX.Elemen
 
     ///////////////////////////////////////////////////////////////////
 
-}
-
-export function initParamsPanel(context: PanelExtensionContext) {
-    ReactDOM.render(<ExamplePanel context={context}/>, context.panelElement);
 }
