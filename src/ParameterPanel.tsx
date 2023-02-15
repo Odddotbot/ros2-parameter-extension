@@ -72,7 +72,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
             default:
                 return undefined;
         }
-    }
+    };
 
 
     /**
@@ -88,7 +88,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                 bool = false;
         });
         return bool;
-    }
+    };
 
 
     /**
@@ -100,7 +100,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
         if (parameterValue === undefined)
             return "undefined";
         return parameterTypes[parameterValue.type - 1];
-    }
+    };
 
 
     /**
@@ -134,14 +134,14 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
             default:
                 return "error, invalid type...";
         }
-    }
+    };
 
 
     /**
      * Updates the list of nodes when a new node appears
      */
     const fetchNodes = () => {
-        setStatus("Fetching nodes...")
+        setStatus("Fetching nodes...");
         context.callService?.("/rosapi/nodes", {})
             .then((_values: unknown) => {
                 setNodes((_values as any).nodes as string[]);
@@ -150,7 +150,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
             .catch((_error: Error) => {
                 setStatus(_error.toString());
             });
-    }
+    };
 
 
     /**
@@ -183,7 +183,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
             .catch(() => {
                 setStatus("error, failed to retreive parameter list")
             });
-    }
+    };
 
 
     /**
@@ -211,7 +211,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                 fetchNodeParameters();
                 setStatus("Error: " + JSON.stringify(error));
             });
-    }
+    };
 
 
     /**
@@ -345,7 +345,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
         parameterValues.forEach(element => {
             tempParameterValues.push(getParameterValue(element));
         });
-    }
+    };
 
 
     /**
@@ -373,7 +373,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                 setSrvParameterValue(parameter.name, event.target.value)
             }}/>
         );
-    }
+    };
 
 
     /**
@@ -414,7 +414,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     console.log(error)
                 });
         }
-    }
+    };
 
 
     ///////////////////////////////////////////////////////////////////
@@ -536,13 +536,13 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
         paddingRight: "12px",
         marginBottom: "10px",
         fontWeight: "500",
-    }
+    };
 
     const statusStyle = {
         fontSize: "0.8rem",
         padding: "5px",
         borderTop: "0.5px solid",
-    }
+    };
 
     const footerStyle = {
         backgroundColor: "#F8F8F8",
