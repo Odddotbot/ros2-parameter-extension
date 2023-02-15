@@ -489,7 +489,6 @@ function ExamplePanel({ context }: { context: PanelExtensionContext }): JSX.Elem
                   fontFamily: "helvetica", 
                   fontSize: "1rem",
                   }}>
-      <h1>ROS2 Parameter Extension</h1>
       <label style={labelStyle}>Node:</label>
       <select
         value={node}
