@@ -5,8 +5,9 @@ import type {Parameter, ParameterValue, SetSrvParam} from "parameter_types";
 
 
 let node: string;
-let paramNameList: string[];
-let paramValList: ParameterValue[];
+let parameterNames: string[];
+let parameterTypes: string[] = ["boolean", "integer", "double", "string", "byte_array", "boolean_array", "integer_array", "double_array", "string_array"];
+let parameterValues: ParameterValue[];
 
 
 export function initParameterPanel(context: PanelExtensionContext) {
@@ -16,14 +17,12 @@ export function initParameterPanel(context: PanelExtensionContext) {
 
 function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Element {
 
-
     const [renderDone, setRenderDone] = useState<(() => void) | undefined>();
-
     const [status, setStatus] = useState<string | undefined>();
 
-    const [paramList, setParamList] = useState<Array<Parameter>>();
-    const [srvParamList, setSrvParamList] = useState<Array<SetSrvParam>>();
-    const [nodeList, setNodeList] = useState<string[]>();
+    const [nodes, setNodes] = useState<string[]>();
+    const [parameters, setParameters] = useState<Array<Parameter>>();
+    const [srvParameters, setSrvParameters] = useState<Array<SetSrvParam>>();
 
     const [colorScheme, setColorScheme] = useState<string>();
     const [bgColor, setBgColor] = useState("#d6d6d6");
@@ -31,12 +30,9 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
 
 
     useLayoutEffect(() => {
-
         context.onRender = (renderState: RenderState, done) => {
-
             setRenderDone(() => done);
-            updateNodeList();
-
+            fetchNodes();
             //Manage some styling for light and dark theme
             setColorScheme(renderState.colorScheme);
             if (renderState.colorScheme == "light") {
@@ -61,13 +57,14 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
         renderDone?.();
     }, [renderDone]);
 
+
     /**
      * converts string representation of a boolean to a boolean
-     * @param stringValue "true" or "false"
+     * @param str "true" or "false"
      * @returns true or false
      */
-    const stringToBoolean = (stringValue: string) => {
-        switch (stringValue?.toLowerCase()?.trim()) {
+    const stringToBoolean = (str: string) => {
+        switch (str?.toLowerCase()?.trim()) {
             case "true":
                 return true;
             case "false":
@@ -77,93 +74,106 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
         }
     }
 
+
     /**
      * determines if a string[] contains exlusively booleans
-     * @param strArr string[] to check
-     * @returns true if strArr only contains booleans, false otherwise
+     * @param strs string[] to check
+     * @returns true if strs only contains booleans, false otherwise
      */
-    const isBooleanArr = (strArr: string[]) => {
+    const isBooleanArray = (strs: string[]) => {
         let bool: boolean = true;
-        strArr.forEach(element => {
-            console.log(stringToBoolean(element));
-            if (stringToBoolean(element) === undefined)
+        strs.forEach(e => {
+            console.log(stringToBoolean(e));
+            if (stringToBoolean(e) === undefined)
                 bool = false;
         });
-
         return bool;
     }
 
 
     /**
-     * Returns the string value of a paramter's value to be outputted on the screen
-     * @param   param The parameter value that is converted to a string
-     * @returns String representation of param
+     * return the parameter type of the given parameter value
+     * @param parameterValue The given Parameter Value
+     * @returns parameterValue's parameter type
      */
-    const getParameterValue = (param: ParameterValue) => {
-        if (param === undefined) {
+    const getParameterType = (parameterValue: ParameterValue) => {
+        if (parameterValue === undefined)
             return "undefined";
-        }
-        switch (param.type) {
+        return parameterTypes[parameterValue.type - 1];
+    }
+
+
+    /**
+     * Returns the string value of a paramter's value to be outputted on the screen
+     * @param parameterValue The parameter value that is converted to a string
+     * @returns String representation of parameterValue
+     */
+    const getParameterValue = (parameterValue: ParameterValue) => {
+        if (parameterValue === undefined)
+            return "undefined";
+
+        switch (parameterValue.type) {
             case 1:
-                return param.bool_value.toString();
+                return parameterValue.bool_value.toString();
             case 2:
-                return param.integer_value.toString();
+                return parameterValue.integer_value.toString();
             case 3:
-                return param.double_value.toString();
+                return parameterValue.double_value.toString();
             case 4:
-                return param.string_value;
+                return parameterValue.string_value;
             case 5:
-                return `[${param.byte_array_value.toString()}]`;
+                return `[${parameterValue.byte_array_value.toString()}]`;
             case 6:
-                return `[${param.bool_array_value.toString()}]`;
+                return `[${parameterValue.bool_array_value.toString()}]`;
             case 7:
-                return `[${param.integer_array_value.toString()}]`;
+                return `[${parameterValue.integer_array_value.toString()}]`;
             case 8:
-                return `[${param.double_array_value.toString()}]`;
+                return `[${parameterValue.double_array_value.toString()}]`;
             case 9:
-                return `[${param.string_array_value.toString()}]`;
+                return `[${parameterValue.string_array_value.toString()}]`;
             default:
                 return "error, invalid type...";
         }
     }
 
+
     /**
      * Updates the list of nodes when a new node appears
      */
-    const updateNodeList = () => {
-        setStatus("retreiving nodes...")
+    const fetchNodes = () => {
+        setStatus("Fetching nodes...")
         context.callService?.("/rosapi/nodes", {})
             .then((_values: unknown) => {
-                setNodeList((_values as any).nodes as string[]);
-                setStatus("nodes retreived");
+                setNodes((_values as any).nodes as string[]);
+                setStatus("Nodes fetched.");
             })
             .catch((_error: Error) => {
                 setStatus(_error.toString());
             });
     }
 
+
     /**
      * Retrieves a list of all parameters for the current node and their values
      */
-    const updateParamList = () => {
-
+    const fetchNodeParameters = () => {
         context.callService?.(node + "/list_parameters", {})
             .then((_value: unknown) => {
-                paramNameList = (_value as any).result.names as string[];
+                parameterNames = (_value as any).result.names as string[];
 
-                context.callService?.(node + "/get_parameters", {names: paramNameList})
+                context.callService?.(node + "/get_parameters", {names: parameterNames})
                     .then((_value: unknown) => {
-                        paramValList = (_value as any).values as ParameterValue[];
+                        parameterValues = (_value as any).values as ParameterValue[];
 
-                        let tempList: Array<Parameter> = [];
-                        for (let i = 0; i < paramNameList.length; i++) {
-                            tempList.push({name: paramNameList[i]!, value: paramValList[i]!});
+                        let tempParameters: Array<Parameter> = [];
+                        for (let i = 0; i < parameterNames.length; i++) {
+                            tempParameters.push({name: parameterNames[i]!, value: parameterValues[i]!});
                         }
-                        if (tempList.length > 0)
-                            setParamList(tempList);
+                        if (tempParameters.length > 0)
+                            setParameters(tempParameters);
 
-                        if (paramNameList !== undefined) {
-                            setSrvParamList(new Array(paramList?.length));
+                        if (parameterNames !== undefined) {
+                            setSrvParameters(new Array(parameters?.length));
                         }
                     })
                     .catch(() => {
@@ -175,141 +185,181 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
             });
     }
 
+
     /**
      * Sets new values to all parameters with an inputted new value
-     * Calls updateParamList() to 'refresh' the screen and display the new parameter values
+     * Calls fetchNodeParameters() to 'refresh' the screen and display the new parameter values
      */
-    const setParam = () => {
-        setStatus("setting parameters...");
+    const sendNodeParameters = () => {
+        setStatus("Sending parameters...");
 
-        let tempList: SetSrvParam[] = srvParamList!;
-
-        for (let i: number = 0; i < tempList.length; i++) {
-            if (tempList[i] == null) {
-                tempList.splice(i, 1);
+        let tempSrvParameters: SetSrvParam[] = srvParameters!;
+        for (let i: number = 0; i < tempSrvParameters.length; i++) {
+            if (tempSrvParameters[i] == null) {
+                tempSrvParameters.splice(i, 1);
                 i = -1;
             }
         }
+        setSrvParameters(tempSrvParameters);
 
-        setSrvParamList(tempList);
-        context.callService?.(node + "/set_parameters", {parameters: srvParamList})
+        context.callService?.(node + "/set_parameters", {parameters: srvParameters})
             .then(() => {
-                updateParamList();
-                setStatus("parameters set");
+                fetchNodeParameters();
+                setStatus("Parameters sent.");
             })
             .catch((error: Error) => {
-                updateParamList();
+                fetchNodeParameters();
                 setStatus("Error: " + JSON.stringify(error));
             });
     }
 
 
-    let paramTypeList: string[] = ["boolean", "integer", "double", "string", "byte_array", "boolean_array", "integer_array", "double_array", "string_array"];
-
-    /**
-     * return the parameter type of the given parameter value
-     * @param paramVal The given Parameter Value
-     * @returns paramVal's parameter type
-     */
-    const getType = (paramVal: ParameterValue) => {
-        if (paramVal === undefined)
-            return "undefined";
-        return paramTypeList[paramVal.type - 1];
-    }
-
     /**
      * Update the list of Parameters with new values to be set
-     * @param val The new value to be set
-     * @param name The name of the parameter that will be set to 'val'
+     * @param parameterValue The new value to be set
+     * @param parameterName The name of the parameter that will be set to 'parameterValue'
      */
-    const updateSrvParamList = (name: string, val: string) => {
-        let idx: number = paramNameList?.indexOf(name)!;
-        let tempList: SetSrvParam[] = srvParamList!;
-        let tempValList: string[] = [];
+    const setSrvParameterValue = (parameterName: string, parameterValue: string) => {
+        let idx: number = parameterNames?.indexOf(parameterName)!;
+        let tempSrvParameters: SetSrvParam[] = srvParameters!;
+        let tempParameterValues: string[] = [];
 
-        if (val === "") {
-            const emptyP: SetSrvParam = {};
-            tempList[idx] = emptyP;
-        } else {
-            let ssp: SetSrvParam = {};
-            let valStrArr: string[] = [];
-            switch (paramList![idx]?.value.type!) {
+        if (parameterValue === "")
+            tempSrvParameters[idx] = {};
+        else {
+            let srvParameter: SetSrvParam = {};
+            let parameterValueStringArray: string[] = [];
+            switch (parameters![idx]?.value.type!) {
                 case 1:
-                    ssp = {name: name, value: {type: 1, bool_value: stringToBoolean(val)}};
+                    srvParameter = {
+                        name: parameterName,
+                        value: {
+                            type: 1,
+                            bool_value: stringToBoolean(parameterValue)
+                        }
+                    };
                     break;
 
                 case 2:
-                    ssp = {name: name, value: {type: 2, integer_value: +val}};
+                    srvParameter = {
+                        name: parameterName,
+                        value: {
+                            type: 2,
+                            integer_value: +parameterValue
+                        }
+                    };
                     break;
 
                 case 3:
-                    ssp = {name: name, value: {type: 3, double_value: +val}};
+                    srvParameter = {
+                        name: parameterName,
+                        value: {
+                            type: 3,
+                            double_value: +parameterValue
+                        }
+                    };
                     break;
 
                 case 4:
-                    ssp = {name: name, value: {type: 4, string_value: val}};
+                    srvParameter = {
+                        name: parameterName,
+                        value: {
+                            type: 4,
+                            string_value: parameterValue
+                        }
+                    };
                     break;
 
-                // TODO: Implement format for byte arrays
-                case 5:
-                    //ssp = { name: name, value: { type: 5, byte_array_value: val as unknown as number[] }};
+                case 5:  // TODO: Implement format for byte arrays
+                    srvParameter = {
+                        name: parameterName,
+                        value: {
+                            type: 5,
+                            byte_array_value: parameterValue as unknown as number[]
+                        }
+                    };
                     break;
 
                 case 6:
-                    valStrArr = val.replace(" ", "").replace("[", "").replace("]", "").split(",");
-                    if (isBooleanArr(valStrArr)) {
-                        let valBoolArr: boolean[] = valStrArr.map((element) => {
+                    parameterValueStringArray = parameterValue.replace(" ", "").replace("[", "").replace("]", "").split(",");
+                    if (isBooleanArray(parameterValueStringArray)) {
+                        let bool_array: boolean[] = parameterValueStringArray.map((element) => {
                             if (element == "true")
                                 return true;
                             return false;
                         });
-                        ssp = {name: name, value: {type: 6, bool_array_value: valBoolArr}};
+                        srvParameter = {
+                            name: parameterName,
+                            value: {
+                                type: 6,
+                                bool_array_value: bool_array
+                            }
+                        };
                     }
                     break;
 
                 case 7:
-                    valStrArr = val.replace(" ", "").replace("[", "").replace("]", "").split(",");
-                    ssp = {name: name, value: {type: 7, integer_array_value: valStrArr.map(Number)}};
+                    parameterValueStringArray = parameterValue.replace(" ", "").replace("[", "").replace("]", "").split(",");
+                    srvParameter = {
+                        name: parameterName,
+                        value: {
+                            type: 7,
+                            integer_array_value: parameterValueStringArray.map(Number)
+                        }
+                    };
                     break;
 
                 case 8:
-                    valStrArr = val.replace(" ", "").replace("[", "").replace("]", "").split(",");
-                    ssp = {name: name, value: {type: 8, double_array_value: valStrArr.map(Number)}};
+                    parameterValueStringArray = parameterValue.replace(" ", "").replace("[", "").replace("]", "").split(",");
+                    srvParameter = {
+                        name: parameterName,
+                        value: {
+                            type: 8,
+                            double_array_value: parameterValueStringArray.map(Number)
+                        }
+                    };
                     break;
 
                 case 9:
-                    val.replace(" ", "");
-                    if (val.charAt(0) == '[' && val.charAt(val.length - 1) == ']')
-                        val = val.substring(1, val.length - 1);
-                    valStrArr = val.split(",");
-                    ssp = {name: name, value: {type: 9, string_array_value: valStrArr}};
+                    parameterValue.replace(" ", "");
+                    if (parameterValue.charAt(0) == '[' && parameterValue.charAt(parameterValue.length - 1) == ']')
+                        parameterValue = parameterValue.substring(1, parameterValue.length - 1);
+                    parameterValueStringArray = parameterValue.split(",");
+                    srvParameter = {
+                        name: parameterName,
+                        value: {
+                            type: 9,
+                            string_array_value: parameterValueStringArray
+                        }
+                    };
                     break;
 
                 default:
-                    ssp = {};
+                    srvParameter = {};
                     break;
             }
-            tempList[idx] = ssp;
-            setSrvParamList(tempList)
+            tempSrvParameters[idx] = srvParameter;
+            setSrvParameters(tempSrvParameters)
         }
 
-        paramValList.forEach(element => {
-            tempValList.push(getParameterValue(element));
+        parameterValues.forEach(element => {
+            tempParameterValues.push(getParameterValue(element));
         });
     }
 
+
     /**
-     * Creates a dropdown input box if param is a boolean, creates a text input box otherwise
-     * @param   param The parameter that an input box is being created for
-     * @returns A dropdown if param.value.type == 1, a textbox otherwise
+     * Creates a dropdown input box if parameter is a boolean, creates a text input box otherwise
+     * @param parameter The parameter that an input box is being created for
+     * @returns A dropdown if parameter.value.type == 1, a textbox otherwise
      */
-    const createInputBox = (param: Parameter) => {
-        if (param.value.type == 1) {
+    const createInputBox = (parameter: Parameter) => {
+        if (parameter.value.type == 1) {
             return (
                 <select
                     style={dropDownStyle}
                     onChange={(event) => {
-                        updateSrvParamList(param.name, event.target.value)
+                        setSrvParameterValue(parameter.name, event.target.value)
                     }}
                 >
                     <option selected hidden></option>
@@ -319,8 +369,8 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
             );
         }
         return (
-            <input style={inputStyle} placeholder={getParameterValue(param.value)} onChange={(event) => {
-                updateSrvParamList(param.name, event.target.value)
+            <input style={inputStyle} placeholder={getParameterValue(parameter.value)} onChange={(event) => {
+                setSrvParameterValue(parameter.name, event.target.value)
             }}/>
         );
     }
@@ -330,7 +380,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
      * loads parameter values from a YAML file and sets all new values
      * @param files the YAML file to be uploaded
      */
-    const loadFile = (files: FileList | null) => {
+    const loadParameterFile = (files: FileList | null) => {
         if (files !== null) {
             files[0]?.text()
                 .then((value: string) => {
@@ -338,27 +388,27 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     value = value.replace(node + ":\n", "");
                     value = value.replace("ros__parameters:\n", "");
 
-                    let params: string[] = value.split("\n");
-                    for (let i = 0; i < params.length; i++) {
+                    let parameterNameArray: string[] = value.split("\n");
+                    for (let i = 0; i < parameterNameArray.length; i++) {
 
-                        if (params[i]!.charAt(0) != '-' && params[i]!.charAt(params[i]!.length - 1) != ':') {
-                            let temp: string[] = params[i]!.split(":");
-                            updateSrvParamList(temp[0]!, temp[1]!);
+                        if (parameterNameArray[i]!.charAt(0) != '-' && parameterNameArray[i]!.charAt(parameterNameArray[i]!.length - 1) != ':') {
+                            let temp: string[] = parameterNameArray[i]!.split(":");
+                            setSrvParameterValue(temp[0]!, temp[1]!);
 
-                        } else if (params[i]!.charAt(params[i]!.length - 1) == ':') {
-                            let tempName: string = params[i]!.replace(":", "").trim();
-                            let tempVal: string = "";
+                        } else if (parameterNameArray[i]!.charAt(parameterNameArray[i]!.length - 1) == ':') {
+                            let tempParameterName: string = parameterNameArray[i]!.replace(":", "").trim();
+                            let tempParameterValue: string = "";
 
-                            while (i + 1 < params.length && params[++i]!.charAt(0) == '-') {
-                                tempVal = tempVal.concat(params[i]!.replace("-", "").trim() + ",");
+                            while (i + 1 < parameterNameArray.length && parameterNameArray[++i]!.charAt(0) == '-') {
+                                tempParameterValue = tempParameterValue.concat(parameterNameArray[i]!.replace("-", "").trim() + ",");
                             }
 
                             i--;
-                            tempVal = tempVal.substring(0, tempVal.length - 1);
-                            updateSrvParamList(tempName, tempVal);
+                            tempParameterValue = tempParameterValue.substring(0, tempParameterValue.length - 1);
+                            setSrvParameterValue(tempParameterName, tempParameterValue);
                         }
                     }
-                    setParam();
+                    sendNodeParameters();
                 })
                 .catch((error: Error) => {
                     console.log(error)
@@ -366,10 +416,10 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
         }
     }
 
+
     ///////////////////////////////////////////////////////////////////
     //////////////////////// PANEL LAYOUT /////////////////////////////
     ///////////////////////////////////////////////////////////////////
-
 
     //////////////////////// CSS STYLING //////////////////////////////
 
@@ -507,8 +557,6 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
     };
     footerStyle;
 
-    ///////////////////////////////////////////////////////////////////
-
     ///////////////////////// HTML PANEL //////////////////////////////
 
     return (
@@ -526,12 +574,12 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                 value={node}
                 onChange={(event) => {
                     node = event.target.value;
-                    updateParamList();
+                    fetchNodeParameters();
                 }}
                 style={dropDownStyle}
             >
                 <option selected hidden>Select a Node</option>
-                {(nodeList ?? []).map((node) => (
+                {(nodes ?? []).map((node) => (
                     <option key={node} value={node}>{node}</option>
                 ))}
             </select>
@@ -541,7 +589,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     style={setButtonStyle}
                     onMouseEnter={() => setBgColor("#8f8f8f")}
                     onMouseLeave={() => colorScheme == "dark" ? setBgColor("#4d4d4d") : setBgColor("#d6d6d6")}
-                    onClick={setParam}
+                    onClick={sendNodeParameters}
                     type="reset">
                     Set Parameters
                 </button>
@@ -552,7 +600,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     onMouseLeave={() => colorScheme == "dark" ? setLoadButtonBgColor("#4d4d4d") : setLoadButtonBgColor("#d6d6d6")}
                 >
                     <input type="file" style={{display: "none"}} onChange={(event) => {
-                        loadFile(event.target.files)
+                        loadParameterFile(event.target.files)
                     }}/>
                     Load
                 </label>
@@ -569,10 +617,10 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     <b style={{borderBottom: "1px solid", padding: "2px", marginBottom: "3px"}}>Value</b>
                     <b style={{borderBottom: "1px solid", padding: "2px", marginBottom: "3px"}}>New Value</b>
 
-                    {(paramList ?? []).map((result) => (
+                    {(parameters ?? []).map((result) => (
                         <>
                             <div style={{margin: "0px 4px 0px 4px"}} key={result.name}>{result.name}:</div>
-                            <div style={{margin: "0px 4px 0px 4px"}}>{getType(result.value)}</div>
+                            <div style={{margin: "0px 4px 0px 4px"}}>{getParameterType(result.value)}</div>
                             <div style={{margin: "0px 4px 0px 4px"}}>{getParameterValue(result.value)}</div>
                             <div style={{margin: "0px 4px 0px 4px"}}>
                                 {createInputBox(result)}
@@ -589,5 +637,4 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
     );
 
     ///////////////////////////////////////////////////////////////////
-
 }
