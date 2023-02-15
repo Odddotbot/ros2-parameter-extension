@@ -1,7 +1,7 @@
 import {PanelExtensionContext, RenderState} from "@foxglove/studio";
 import {useEffect, useLayoutEffect, useState} from "react";
 import ReactDOM from "react-dom";
-import type {Parameter, ParameterValue, SetSrvParam} from "parameter_types";
+import type {Parameter, ParameterValue, SetSrvParameter} from "parameter_types";
 
 
 let node: string;
@@ -22,7 +22,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
 
     const [nodes, setNodes] = useState<string[]>();
     const [parameters, setParameters] = useState<Array<Parameter>>();
-    const [srvParameters, setSrvParameters] = useState<Array<SetSrvParam>>();
+    const [srvParameters, setSrvParameters] = useState<Array<SetSrvParameter>>();
 
     const [colorScheme, setColorScheme] = useState<string>();
     const [bgColor, setBgColor] = useState("#d6d6d6");
@@ -193,7 +193,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
     const sendNodeParameters = () => {
         setStatus("Sending parameters...");
 
-        let tempSrvParameters: SetSrvParam[] = srvParameters!;
+        let tempSrvParameters: SetSrvParameter[] = srvParameters!;
         for (let i: number = 0; i < tempSrvParameters.length; i++) {
             if (tempSrvParameters[i] == null) {
                 tempSrvParameters.splice(i, 1);
@@ -221,13 +221,13 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
      */
     const setSrvParameterValue = (parameterName: string, parameterValue: string) => {
         let idx: number = parameterNames?.indexOf(parameterName)!;
-        let tempSrvParameters: SetSrvParam[] = srvParameters!;
+        let tempSrvParameters: SetSrvParameter[] = srvParameters!;
         let tempParameterValues: string[] = [];
 
         if (parameterValue === "")
             tempSrvParameters[idx] = {};
         else {
-            let srvParameter: SetSrvParam = {};
+            let srvParameter: SetSrvParameter = {};
             let parameterValueStringArray: string[] = [];
             switch (parameters![idx]?.value.type!) {
                 case 1:
