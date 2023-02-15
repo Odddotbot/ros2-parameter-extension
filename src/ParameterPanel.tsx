@@ -59,35 +59,16 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
 
 
     /**
-     * converts string representation of a boolean to a boolean
-     * @param str "true" or "false"
-     * @returns true or false
+     * Split string into string array
+     * @param str string
+     * @returns String array
      */
-    const stringToBoolean = (str: string) => {
-        switch (str?.toLowerCase()?.trim()) {
-            case "true":
-                return true;
-            case "false":
-                return false;
-            default:
-                return undefined;
-        }
-    };
-
-
-    /**
-     * determines if a string[] contains exlusively booleans
-     * @param strs string[] to check
-     * @returns true if strs only contains booleans, false otherwise
-     */
-    const isBooleanArray = (strs: string[]) => {
-        let bool: boolean = true;
-        strs.forEach(e => {
-            console.log(stringToBoolean(e));
-            if (stringToBoolean(e) === undefined)
-                bool = false;
-        });
-        return bool;
+    const stringToArray = (str: string) => {
+        return str
+            .replaceAll(" ", "")
+            .replace("[", "")
+            .replace("]", "")
+            .split(",");
     };
 
 
@@ -222,26 +203,23 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
     const setSrvParameterValue = (parameterName: string, parameterValue: string) => {
         let idx: number = parameterNames?.indexOf(parameterName)!;
         let tempSrvParameters: SetSrvParameter[] = srvParameters!;
-        let tempParameterValues: string[] = [];
 
         if (parameterValue === "")
             tempSrvParameters[idx] = {};
         else {
-            let srvParameter: SetSrvParameter = {};
-            let parameterValueStringArray: string[] = [];
             switch (parameters![idx]?.value.type!) {
                 case 1:
-                    srvParameter = {
+                    tempSrvParameters[idx] = {
                         name: parameterName,
                         value: {
                             type: 1,
-                            bool_value: stringToBoolean(parameterValue)
+                            bool_value: parameterValue.trim().toLowerCase() === "true"
                         }
                     };
                     break;
 
                 case 2:
-                    srvParameter = {
+                    tempSrvParameters[idx] = {
                         name: parameterName,
                         value: {
                             type: 2,
@@ -251,7 +229,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 3:
-                    srvParameter = {
+                    tempSrvParameters[idx] = {
                         name: parameterName,
                         value: {
                             type: 3,
@@ -261,7 +239,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 4:
-                    srvParameter = {
+                    tempSrvParameters[idx] = {
                         name: parameterName,
                         value: {
                             type: 4,
@@ -271,7 +249,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 5:  // TODO: Implement format for byte arrays
-                    srvParameter = {
+                    tempSrvParameters[idx] = {
                         name: parameterName,
                         value: {
                             type: 5,
@@ -281,70 +259,51 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 6:
-                    parameterValueStringArray = parameterValue.replace(" ", "").replace("[", "").replace("]", "").split(",");
-                    if (isBooleanArray(parameterValueStringArray)) {
-                        let bool_array: boolean[] = parameterValueStringArray.map((element) => {
-                            if (element == "true")
-                                return true;
-                            return false;
-                        });
-                        srvParameter = {
-                            name: parameterName,
-                            value: {
-                                type: 6,
-                                bool_array_value: bool_array
-                            }
-                        };
-                    }
+                    tempSrvParameters[idx] = {
+                        name: parameterName,
+                        value: {
+                            type: 6,
+                            bool_array_value: stringToArray(parameterValue).map(Boolean)
+                        }
+                    };
                     break;
 
                 case 7:
-                    parameterValueStringArray = parameterValue.replace(" ", "").replace("[", "").replace("]", "").split(",");
-                    srvParameter = {
+                    tempSrvParameters[idx] = {
                         name: parameterName,
                         value: {
                             type: 7,
-                            integer_array_value: parameterValueStringArray.map(Number)
+                            integer_array_value: stringToArray(parameterValue).map(Number)
                         }
                     };
                     break;
 
                 case 8:
-                    parameterValueStringArray = parameterValue.replace(" ", "").replace("[", "").replace("]", "").split(",");
-                    srvParameter = {
+                    tempSrvParameters[idx] = {
                         name: parameterName,
                         value: {
                             type: 8,
-                            double_array_value: parameterValueStringArray.map(Number)
+                            double_array_value: stringToArray(parameterValue).map(Number)
                         }
                     };
                     break;
 
                 case 9:
-                    parameterValue.replace(" ", "");
-                    if (parameterValue.charAt(0) == '[' && parameterValue.charAt(parameterValue.length - 1) == ']')
-                        parameterValue = parameterValue.substring(1, parameterValue.length - 1);
-                    parameterValueStringArray = parameterValue.split(",");
-                    srvParameter = {
+                    tempSrvParameters[idx] = {
                         name: parameterName,
                         value: {
                             type: 9,
-                            string_array_value: parameterValueStringArray
+                            string_array_value: stringToArray(parameterValue)
                         }
                     };
                     break;
 
                 default:
-                    srvParameter = {};
+                    tempSrvParameters[idx] = {};
                     break;
             }
-            tempSrvParameters[idx] = srvParameter;
             setSrvParameters(tempSrvParameters)
         }
-
-        parameterValues.forEach(element => {
-            tempParameterValues.push(getParameterValue(element));
-        });
     };
 
 
