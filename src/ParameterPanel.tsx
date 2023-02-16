@@ -366,11 +366,11 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
     };
 
 
-    ///////////////////////////////////////////////////////////////////
-    //////////////////////// PANEL LAYOUT /////////////////////////////
-    ///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+//////////////////////// PANEL LAYOUT /////////////////////////////
+///////////////////////////////////////////////////////////////////
 
-    //////////////////////// CSS STYLING //////////////////////////////
+//////////////////////// CSS STYLING //////////////////////////////
 
     let setButtonStyle = {};
     let loadButtonStyle = {};
@@ -493,20 +493,8 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
         borderTop: "0.5px solid",
     };
 
-    const footerStyle = {
-        backgroundColor: "#F8F8F8",
-        borderTop: "1px solid #E7E7E7",
-        textAlign: "center",
-        padding: "20px",
-        position: "fixed",
-        left: "0",
-        bottom: "0",
-        height: "60px",
-        width: "100%"
-    };
-    footerStyle;
 
-    ///////////////////////// HTML PANEL //////////////////////////////
+///////////////////////// HTML PANEL //////////////////////////////
 
     return (
         <body>
@@ -518,7 +506,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
             fontFamily: "helvetica",
             fontSize: "1rem",
         }}>
-            <label style={labelStyle}>Node:</label>
+            <label style={labelStyle}>Select node:</label>
             <select
                 value={node}
                 onChange={(event) => {
@@ -536,8 +524,26 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
             <form>
                 <button
                     style={setButtonStyle}
-                    onMouseEnter={() => setBgColor("#8f8f8f")}
-                    onMouseLeave={() => colorScheme == "dark" ? setBgColor("#4d4d4d") : setBgColor("#d6d6d6")}
+                    // onMouseEnter={() => setBgColor("#8f8f8f")}
+                    // onMouseLeave={() => colorScheme === "dark" ? setBgColor("#4d4d4d") : setBgColor("#d6d6d6")}
+                    onClick={fetchNodes}
+                    type="reset">
+                    Get Nodes
+                </button>
+
+                <button
+                    style={setButtonStyle}
+                    // onMouseEnter={() => setBgColor("#8f8f8f")}
+                    // onMouseLeave={() => colorScheme === "dark" ? setBgColor("#4d4d4d") : setBgColor("#d6d6d6")}
+                    onClick={fetchNodeParameters}
+                    type="reset">
+                    Get Parameters
+                </button>
+
+                <button
+                    style={setButtonStyle}
+                    // onMouseEnter={() => setBgColor("#8f8f8f")}
+                    // onMouseLeave={() => colorScheme === "dark" ? setBgColor("#4d4d4d") : setBgColor("#d6d6d6")}
                     onClick={sendNodeParameters}
                     type="reset">
                     Set Parameters
@@ -545,8 +551,8 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
 
                 <label
                     style={loadButtonStyle}
-                    onMouseEnter={() => setLoadButtonBgColor("#8f8f8f")}
-                    onMouseLeave={() => colorScheme == "dark" ? setLoadButtonBgColor("#4d4d4d") : setLoadButtonBgColor("#d6d6d6")}
+                    // onMouseEnter={() => setLoadButtonBgColor("#8f8f8f")}
+                    // onMouseLeave={() => colorScheme === "dark" ? setLoadButtonBgColor("#4d4d4d") : setLoadButtonBgColor("#d6d6d6")}
                 >
                     <input type="file" style={{display: "none"}} onChange={(event) => {
                         loadParameterFile(event.target.files)
@@ -555,10 +561,6 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                 </label>
                 <br/>
 
-                <label style={labelStyle}>Save to YAML</label>
-                <br/>
-
-                <label style={labelStyle}>Parameter List</label>
                 <br/>
                 <div style={{display: "grid", gridTemplateColumns: "1fr 0.75fr 1fr 0.75fr", rowGap: "0.2rem",}}>
                     <b style={{borderBottom: "1px solid", padding: "2px", marginBottom: "3px",}}>Parameter</b>
@@ -580,10 +582,10 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
             </form>
         </div>
         <div style={{left: "0px", bottom: "0px", height: "25px", width: "100%", position: "sticky"}}>
-            <p style={statusStyle}>status: {status}</p>
+            <p style={statusStyle}>{status}</p>
         </div>
         </body>
     );
 
-    ///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
 }
