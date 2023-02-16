@@ -186,6 +186,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
         setStatus("Sending node parameters for node " + node + "...");
         context.callService?.(node + "/set_parameters", {parameters: Array.from(srvParameters.values())})
             .then(() => {
+                srvParameters.clear();
                 console.info("Sending node parameters done");
                 setStatus("Sending node parameters done");
             })
