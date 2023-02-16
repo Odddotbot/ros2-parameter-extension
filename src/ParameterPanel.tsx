@@ -29,8 +29,6 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
 
     useLayoutEffect(() => {
         context.onRender = (renderState: RenderState, done) => {
-            setRenderDone(() => done);
-            fetchNodes();
             //Manage some styling for light and dark theme
             setColorScheme(renderState.colorScheme);
             if (renderState.colorScheme == "light") {
@@ -40,6 +38,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                 setBgColor("#4d4d4d");
                 setLoadButtonBgColor("#4d4d4d");
             }
+            setRenderDone(() => done);
         };
 
         //If new topics are found, context.onRender() will update the list of nodes
