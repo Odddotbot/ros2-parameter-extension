@@ -5,9 +5,7 @@ import type {Parameter, ParameterValue, SetSrvParameter} from "parameter_types";
 
 
 let node: string;
-let parameterNames: string[];
 let parameterTypes: string[] = ["boolean", "integer", "double", "string", "byte_array", "boolean_array", "integer_array", "double_array", "string_array"];
-let parameterValues: ParameterValue[];
 
 
 export function initParameterPanel(context: PanelExtensionContext) {
@@ -21,8 +19,8 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
     const [status, setStatus] = useState<string | undefined>();
 
     const [nodes, setNodes] = useState<string[]>();
-    const [parameters, setParameters] = useState<Array<Parameter>>();
-    const [srvParameters, setSrvParameters] = useState<Array<SetSrvParameter>>();
+    const [parameters, setParameters] = useState<Map<String, Parameter>>(new Map());
+    const [srvParameters, setSrvParameters] = useState<Map<String, SetSrvParameter>>(new Map());
 
     const [colorScheme, setColorScheme] = useState<string>();
     const [bgColor, setBgColor] = useState("#d6d6d6");
@@ -124,13 +122,14 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
     const fetchNodes = () => {
         setStatus("Fetching nodes...");
         context.callService?.("/rosapi/nodes", {})
-            .then((_value: unknown) => {
-                setNodes((_value as any).nodes as string[]);
+            .then((value: unknown) => {
+                setNodes((value as any).nodes as string[]);
                 setStatus("Fetching nodes done");
             })
-            .catch((_error: Error) => {
+            .catch((error) => {
+                console.error(error);
                 setNodes([]);
-                setStatus("Fetching nodes failed: " + _error.message);
+                setStatus("Fetching nodes failed: " + error.message);
             });
     };
 
@@ -141,31 +140,28 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
     const fetchNodeParameters = () => {
         setStatus("Fetching node parameters for node " + node + "...");
         context.callService?.(node + "/list_parameters", {})
-            .then((_value: unknown) => {
-                parameterNames = (_value as any).result.names as string[];
-
+            .then((value: unknown) => {
+                let parameterNames = (value as any).result.names as string[];
                 context.callService?.(node + "/get_parameters", {names: parameterNames})
-                    .then((_value: unknown) => {
-                        parameterValues = (_value as any).values as ParameterValue[];
-
-                        let tempParameters: Array<Parameter> = [];
+                    .then((value: unknown) => {
+                        let parameterValues = (value as any).values as ParameterValue[];
+                        let tempParameters = new Map<String, Parameter>();
                         for (let i = 0; i < parameterNames.length; i++) {
                             let parameter = {
                                 name: parameterNames[i]!,
                                 value: parameterValues[i]!
                             };
-                            tempParameters.push(parameter);
+                            tempParameters.set(parameter.name, parameter);
                         }
                         setParameters(tempParameters);
-                        setSrvParameters(new Array(tempParameters.length));
                         setStatus("Fetching node parameters done");
                     })
-                    .catch((_error) => {
-                        setStatus("Fetching node parameters values failed: " + _error.message);
+                    .catch((error) => {
+                        setStatus("Fetching node parameters values failed: " + error.message);
                     });
             })
-            .catch((_error) => {
-                setStatus("Fetching node parameters failed: " + _error.message);
+            .catch((error) => {
+                setStatus("Fetching node parameters failed: " + error.message);
             });
     };
 
@@ -175,22 +171,13 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
      * Calls fetchNodeParameters() to 'refresh' the screen and display the new parameter values
      */
     const sendNodeParameters = () => {
-        let tempSrvParameters: SetSrvParameter[] = srvParameters!;
-        for (let i: number = 0; i < tempSrvParameters.length; i++) {
-            if (tempSrvParameters[i] == null) {
-                tempSrvParameters.splice(i, 1);
-                i = -1;
-            }
-        }
-        setSrvParameters(tempSrvParameters);
-
         setStatus("Sending node parameters for node " + node + "...");
-        context.callService?.(node + "/set_parameters", {parameters: srvParameters})
+        context.callService?.(node + "/set_parameters", {parameters: Array.from(srvParameters.values())})
             .then(() => {
                 setStatus("Sending node parameters done");
             })
-            .catch((_error) => {
-                setStatus("Sending node parameters failed: " + _error.message);
+            .catch((error) => {
+                setStatus("Sending node parameters failed: " + error.message);
             })
             .finally(() => {
                 fetchNodeParameters();
@@ -204,15 +191,13 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
      * @param parameterName The name of the parameter that will be set to 'parameterValue'
      */
     const setSrvParameterValue = (parameterName: string, parameterValue: string) => {
-        let idx: number = parameterNames?.indexOf(parameterName)!;
-        let tempSrvParameters: SetSrvParameter[] = srvParameters!;
+        let tempSrvParameters = srvParameters;
+        let tempSrvParameter = {};
 
-        if (parameterValue === "")
-            tempSrvParameters[idx] = {};
-        else {
-            switch (parameters![idx]?.value.type!) {
+        if (parameterValue !== "") {
+            switch (parameters.get(parameterName)!.value.type) {
                 case 1:
-                    tempSrvParameters[idx] = {
+                    tempSrvParameter = {
                         name: parameterName,
                         value: {
                             type: 1,
@@ -222,7 +207,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 2:
-                    tempSrvParameters[idx] = {
+                    tempSrvParameter = {
                         name: parameterName,
                         value: {
                             type: 2,
@@ -232,7 +217,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 3:
-                    tempSrvParameters[idx] = {
+                    tempSrvParameter = {
                         name: parameterName,
                         value: {
                             type: 3,
@@ -242,7 +227,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 4:
-                    tempSrvParameters[idx] = {
+                    tempSrvParameter = {
                         name: parameterName,
                         value: {
                             type: 4,
@@ -252,7 +237,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 5:  // TODO: Implement format for byte arrays
-                    tempSrvParameters[idx] = {
+                    tempSrvParameter = {
                         name: parameterName,
                         value: {
                             type: 5,
@@ -262,7 +247,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 6:
-                    tempSrvParameters[idx] = {
+                    tempSrvParameter = {
                         name: parameterName,
                         value: {
                             type: 6,
@@ -272,7 +257,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 7:
-                    tempSrvParameters[idx] = {
+                    tempSrvParameter = {
                         name: parameterName,
                         value: {
                             type: 7,
@@ -282,7 +267,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 8:
-                    tempSrvParameters[idx] = {
+                    tempSrvParameter = {
                         name: parameterName,
                         value: {
                             type: 8,
@@ -292,7 +277,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 case 9:
-                    tempSrvParameters[idx] = {
+                    tempSrvParameter = {
                         name: parameterName,
                         value: {
                             type: 9,
@@ -302,11 +287,13 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     break;
 
                 default:
-                    tempSrvParameters[idx] = {};
+                    tempSrvParameter = {};
                     break;
             }
-            setSrvParameters(tempSrvParameters)
         }
+
+        tempSrvParameters.set(parameterName, tempSrvParameter);
+        setSrvParameters(tempSrvParameters)
     };
 
 
@@ -316,7 +303,7 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
      * @returns A dropdown if parameter.value.type == 1, a textbox otherwise
      */
     const createInputBox = (parameter: Parameter) => {
-        if (parameter.value.type == 1) {
+        if (parameter.value.type === 1) {
             return (
                 <select
                     style={dropDownStyle}
@@ -579,13 +566,13 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                     <b style={{borderBottom: "1px solid", padding: "2px", marginBottom: "3px"}}>Value</b>
                     <b style={{borderBottom: "1px solid", padding: "2px", marginBottom: "3px"}}>New Value</b>
 
-                    {(parameters ?? []).map((result) => (
+                    {Array.from(parameters.values()).map((p) => (
                         <>
-                            <div style={{margin: "0px 4px 0px 4px"}} key={result.name}>{result.name}:</div>
-                            <div style={{margin: "0px 4px 0px 4px"}}>{getParameterType(result.value)}</div>
-                            <div style={{margin: "0px 4px 0px 4px"}}>{getParameterValue(result.value)}</div>
+                            <div style={{margin: "0px 4px 0px 4px"}} key={p.name}>{p.name}:</div>
+                            <div style={{margin: "0px 4px 0px 4px"}}>{getParameterType(p.value)}</div>
+                            <div style={{margin: "0px 4px 0px 4px"}}>{getParameterValue(p.value)}</div>
                             <div style={{margin: "0px 4px 0px 4px"}}>
-                                {createInputBox(result)}
+                                {createInputBox(p)}
                             </div>
                         </>
                     ))}
