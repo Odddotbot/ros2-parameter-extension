@@ -379,7 +379,6 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                             setSrvParameterValue(tempParameterName, tempParameterValue);
                         }
                     }
-                    sendNodeParameters();
                 })
                 .catch((error: Error) => {
                     console.log(error)
