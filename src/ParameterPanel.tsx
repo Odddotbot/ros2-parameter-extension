@@ -119,15 +119,18 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
      * Updates the list of nodes when a new node appears
      */
     const fetchNodes = () => {
+        console.info("Fetching nodes...");
         setStatus("Fetching nodes...");
         context.callService?.("/rosapi/nodes", {})
             .then((value: unknown) => {
+                console.debug(value);
                 setNodes((value as any).nodes as string[]);
+                console.info("Fetching nodes done");
                 setStatus("Fetching nodes done");
             })
             .catch((error) => {
-                console.error(error);
                 setNodes([]);
+                console.error(error);
                 setStatus("Fetching nodes failed: " + error.message);
             });
     };
@@ -137,12 +140,15 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
      * Retrieves a list of all parameters for the current node and their values
      */
     const fetchNodeParameters = () => {
+        console.info("Fetching node parameters for node " + node + "...");
         setStatus("Fetching node parameters for node " + node + "...");
         context.callService?.(node + "/list_parameters", {})
             .then((value: unknown) => {
+                console.debug(value);
                 let parameterNames = (value as any).result.names as string[];
                 context.callService?.(node + "/get_parameters", {names: parameterNames})
                     .then((value: unknown) => {
+                        console.debug(value);
                         let parameterValues = (value as any).values as ParameterValue[];
                         let tempParameters = new Map<String, Parameter>();
                         for (let i = 0; i < parameterNames.length; i++) {
@@ -150,16 +156,22 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
                                 name: parameterNames[i]!,
                                 value: parameterValues[i]!
                             };
+                            console.debug(parameter);
                             tempParameters.set(parameter.name, parameter);
                         }
                         setParameters(tempParameters);
+                        console.info("Fetching node parameters done");
                         setStatus("Fetching node parameters done");
                     })
                     .catch((error) => {
-                        setStatus("Fetching node parameters values failed: " + error.message);
+                        console.error(error);
+                        console.error("Fetching node parameter values failed: " + error.message);
+                        setStatus("Fetching node parameter values failed: " + error.message);
                     });
             })
             .catch((error) => {
+                console.error(error);
+                console.error("Fetching node parameters failed: " + error.message);
                 setStatus("Fetching node parameters failed: " + error.message);
             });
     };
@@ -170,12 +182,16 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
      * Calls fetchNodeParameters() to 'refresh' the screen and display the new parameter values
      */
     const sendNodeParameters = () => {
+        console.info("Sending node parameters for node " + node + "...");
         setStatus("Sending node parameters for node " + node + "...");
         context.callService?.(node + "/set_parameters", {parameters: Array.from(srvParameters.values())})
             .then(() => {
+                console.info("Sending node parameters done");
                 setStatus("Sending node parameters done");
             })
             .catch((error) => {
+                console.error(error);
+                console.error("Sending node parameters failed: " + error.message);
                 setStatus("Sending node parameters failed: " + error.message);
             })
             .finally(() => {
@@ -190,6 +206,9 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
      * @param parameterName The name of the parameter that will be set to 'parameterValue'
      */
     const setSrvParameterValue = (parameterName: string, parameterValue: string) => {
+        console.info(`Setting ${parameterName} to ${parameterValue}`);
+        setStatus(`Setting ${parameterName} to ${parameterValue}`);
+
         let tempSrvParameters = srvParameters;
         let tempSrvParameter = {};
 
@@ -292,7 +311,11 @@ function ParameterPanel({context}: { context: PanelExtensionContext }): JSX.Elem
         }
 
         tempSrvParameters.set(parameterName, tempSrvParameter);
-        setSrvParameters(tempSrvParameters)
+        setSrvParameters(tempSrvParameters);
+
+        console.debug(tempSrvParameter);
+        console.info(`Setting ${parameterName} done`);
+        setStatus(`Setting ${parameterName} done`);
     };
 
 
