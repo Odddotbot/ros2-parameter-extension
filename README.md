@@ -23,7 +23,7 @@ Currently only works with a `rosbridge` connection.
   - Run `yarn local-install`.
   - In folder `~/.foxglove-studio/extensions` should appear a folder `oddbot.oddbot-ros2-parameter-extension-#.#.#`.
     - Note that Foxglove has trouble handling multiple versions of the same extension.
-    - Make sure folder `~/.foxglove-studio/extensions` contains ony one folder `oddbot.oddbot-ros2-parameter-extension-#.#.#`.
+    - Make sure folder `~/.foxglove-studio/extensions` contains ony one folder `oddbot.oddbot-ros2-parameter-extension-#.#.#` and not multiple versions.
 - Add `ROS2 parameters extension` panel:
   - Open `Foxglove Studio`.
   - In the left sidebar click button `Extensions`.
